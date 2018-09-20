@@ -3,7 +3,7 @@ from queue import Queue
 from random import randint
 from scapy.layers.inet import ICMP, IP
 from scapy.sendrecv import sr1
-from threading import get_ident
+from threading import Thread
 from typing import List
 
 ICMP_STATUS_OK = 0
@@ -23,10 +23,10 @@ def traceroute(hostname: str, start=1, end=30) -> List:
 
         if not reply:
             delta = None
-            print('{} {:<2} * * *'.format(str(get_ident()), i))
+            print('{:<30} {:<2} * * *'.format(hostname, i))
         elif reply.payload:
             delta = timestampdiff(request, reply)
-            print('{} {:<2} {:<15} {} {}'.format(get_ident(), i, reply.src, delta, reply.payload.type))
+            print('{:<30} {:<2} {:<15} {} {}'.format(hostname, i, reply.src, delta, reply.payload.type))
         pkts.append((request, reply, delta))
 
         if reply and reply.payload and reply.payload.type == ICMP_STATUS_OK:
@@ -43,3 +43,12 @@ def loop(input: Queue, output: Queue) -> None:
         input.task_done()
         if not work:
             break
+
+
+def threads(num_threads, input, output):
+    tlist = []
+    for i in range(0, num_threads):
+        t = Thread(target=loop, args=(input, output))
+        t.start()
+        tlist.append(t)
+    return tlist
